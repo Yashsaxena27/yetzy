@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Yatzy Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>Yatzy</h1>
+
+  <div id="diceContainer" class="dice-container">
+    <div class="die" data-index="0">0</div>
+    <div class="die" data-index="1">0</div>
+    <div class="die" data-index="2">0</div>
+    <div class="die" data-index="3">0</div>
+    <div class="die" data-index="4">0</div>
+  </div>
+
+  <h2>Score Sheet</h2>
+
+<div id="scoreBoard">
+  <div class="score-row" data-value="1">Ones: <span class="score">-</span></div>
+  <div class="score-row" data-value="2">Twos: <span class="score">-</span></div>
+  <div class="score-row" data-value="3">Threes: <span class="score">-</span></div>
+  <div class="score-row" data-value="4">Fours: <span class="score">-</span></div>
+  <div class="score-row" data-value="5">Fives: <span class="score">-</span></div>
+  <div class="score-row" data-value="6">Sixes: <span class="score">-</span></div>
+</div>
+
+  <p>Rolls Left: <span id="rollsLeft">3</span></p>
+
+  <button id="rollBtn">Roll Dice</button>
+  <button id="resetBtn">New Turn</button>
+
+  <script src="game.js"></script>
+</body>
+</html>
