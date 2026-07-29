@@ -1,54 +1,445 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="dark-space" data-skin="classic">
 <head>
-  <title>Yatzy Game</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yatzy - Casino Tabletop Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <h1>Yatzy</h1>
+  <!-- Living Aurora Background Canvas -->
+  <canvas id="bgCanvas" class="bg-canvas"></canvas>
 
-  <div id="diceContainer" class="dice-container">
-    <div class="die" data-index="0">0</div>
-    <div class="die" data-index="1">0</div>
-    <div class="die" data-index="2">0</div>
-    <div class="die" data-index="3">0</div>
-    <div class="die" data-index="4">0</div>
+  <!-- Confetti & Fireworks Canvas -->
+  <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+
+  <!-- Floating Hit Score Popups Container -->
+  <div id="floatingHitsContainer" class="floating-hits-container"></div>
+
+  <!-- Achievement Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Big Hit Banner -->
+  <div id="bigHitBanner" class="big-hit-banner hidden"></div>
+
+  <div class="app-container" id="appContainer">
+    
+    <!-- Top Bar: Profile, XP & Coins Economy -->
+    <div class="top-profile-bar card">
+      <div class="user-profile">
+        <div class="avatar-box">🎲</div>
+        <div class="profile-info">
+          <div class="profile-title-row">
+            <span class="player-name">Player 1</span>
+            <span id="playerLevelBadge" class="level-badge">Lvl 1</span>
+            <span class="rank-badge">🎲 Gold Gambler</span>
+          </div>
+          <div class="xp-bar-container">
+            <div id="xpBarFill" class="xp-bar-fill" style="width: 0%;"></div>
+          </div>
+          <div class="xp-subtext"><span id="xpText">0</span> / 500 XP</div>
+        </div>
+      </div>
+
+      <!-- Quick Economy & Game Stats Bar -->
+      <div class="quick-stats">
+        <div class="stat-pill coins-pill">
+          <span class="label">Coins</span>
+          <strong id="coinsCount">🪙 1,250</strong>
+        </div>
+        <div class="stat-pill">
+          <span class="label">Best Score</span>
+          <strong id="quickBestScore">0</strong>
+        </div>
+        <div class="stat-pill">
+          <span class="label">Win Rate</span>
+          <strong id="quickWinRate">0%</strong>
+        </div>
+        <button id="openStatsBtn" class="btn btn-secondary btn-icon-text">
+          <span>📊</span> Stats
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Header & Controls Bar -->
+    <header class="app-header">
+      <div class="logo-area">
+        <h1>YATZY</h1>
+        <span class="badge">CASINO</span>
+      </div>
+
+      <!-- Mode Selector -->
+      <div class="mode-selector">
+        <button class="mode-btn active" data-mode="solo">👤 Solo</button>
+        <button class="mode-btn" data-mode="bot">🤖 vs Bot</button>
+        <button class="mode-btn" data-mode="2p">👥 2 Players</button>
+      </div>
+
+      <!-- Customization Controls -->
+      <div class="header-settings">
+        <!-- Theme Selector (7 Themes) -->
+        <select id="themeSelect" class="custom-select" aria-label="Select Theme">
+          <option value="dark-space">🌌 Dark Space</option>
+          <option value="royal-purple">👑 Royal Purple</option>
+          <option value="neon-cyber">⚡ Cyber Neon</option>
+          <option value="casino-gold">🎰 Casino Gold</option>
+          <option value="ice-blue">❄️ Ice Blue</option>
+          <option value="retro-arcade">🕹️ Retro Arcade</option>
+          <option value="matrix">🟢 Matrix</option>
+        </select>
+
+        <!-- Dice Skin Selector -->
+        <select id="skinSelect" class="custom-select" aria-label="Select Dice Skin">
+          <option value="classic">🤍 Ivory Skin</option>
+          <option value="cyber">💜 Cyber Skin</option>
+          <option value="gold">👑 Gold Skin</option>
+          <option value="ruby">💎 Ruby Skin</option>
+          <option value="emerald">🌿 Emerald Skin</option>
+        </select>
+
+        <!-- Bot Difficulty -->
+        <select id="botDiffSelect" class="custom-select hidden" aria-label="Select Bot Difficulty">
+          <option value="easy">🟢 Rookie Bot</option>
+          <option value="medium" selected>🟡 Pro Bot</option>
+          <option value="hard">🔴 Master Bot</option>
+        </select>
+
+        <!-- Audio Volume Control -->
+        <div class="volume-control-box">
+          <button id="soundToggleBtn" class="icon-btn" title="Toggle Sound" aria-label="Toggle Sound">
+            <span id="soundIcon">🔊</span>
+          </button>
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.7" class="volume-slider" title="Volume Slider" aria-label="Volume Slider">
+        </div>
+
+        <button id="restartBtn" class="btn btn-secondary">New Game</button>
+      </div>
+    </header>
+
+    <!-- Turn Guidance & Round Progress -->
+    <div class="progress-turn-wrapper">
+      <div id="turnBanner" class="turn-banner p1-turn">
+        <span class="turn-icon">👤</span>
+        <span id="turnText">PLAYER 1 | 🎲 3 Rolls Left</span>
+      </div>
+      <div class="game-progress-bar-box">
+        <div class="progress-labels">
+          <span>ROUND <span id="roundCountText">1</span> / 13</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div id="gameProgressFill" class="progress-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Game Layout -->
+    <main class="game-layout">
+
+      <!-- Left Column: Tabletop Felt & 88px Hero 3D Dice -->
+      <section class="dice-section card">
+        <div class="section-title">
+          <h2>Felt Table</h2>
+          <div class="turn-tracker">Round <span id="roundCount">1</span> / 13</div>
+        </div>
+
+        <p class="instruction-text" id="instructionText">Click "Roll Dice" to start your turn</p>
+
+        <!-- Velvet Felt Casino Board -->
+        <div class="dice-felt-table" id="diceFeltTable">
+          <div id="diceContainer" class="dice-container">
+            <div class="die-3d-wrapper">
+              <div class="die" data-index="0" tabIndex="0" role="button" aria-label="Die 1"></div>
+            </div>
+            <div class="die-3d-wrapper">
+              <div class="die" data-index="1" tabIndex="0" role="button" aria-label="Die 2"></div>
+            </div>
+            <div class="die-3d-wrapper">
+              <div class="die" data-index="2" tabIndex="0" role="button" aria-label="Die 3"></div>
+            </div>
+            <div class="die-3d-wrapper">
+              <div class="die" data-index="3" tabIndex="0" role="button" aria-label="Die 4"></div>
+            </div>
+            <div class="die-3d-wrapper">
+              <div class="die" data-index="4" tabIndex="0" role="button" aria-label="Die 5"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls Area -->
+        <div class="controls-area">
+          <button id="rollBtn" class="btn btn-primary btn-large btn-glow">
+            <span class="btn-text">Roll Dice</span>
+            <span class="rolls-badge"><span id="rollsLeft">3</span> left</span>
+          </button>
+          
+          <div class="assist-btns-row">
+            <button id="hintBtn" class="btn btn-secondary btn-assist" title="Suggest best category move">
+              💡 Best Move Hint
+            </button>
+            <button id="undoBtn" class="btn btn-secondary btn-assist" title="Undo last score move" disabled>
+              ↩️ Undo Move
+            </button>
+          </div>
+        </div>
+
+        <!-- Achievements Showcase -->
+        <div class="achievements-card">
+          <h3>🏆 Achievements (<span id="achievementsUnlockedCount">0</span>/8)</h3>
+          <div id="achievementsGrid" class="achievements-grid"></div>
+        </div>
+      </section>
+
+      <!-- Right Column: Interactive Scorecard -->
+      <section class="score-section card">
+        <div class="section-title">
+          <h2>Scorecard</h2>
+          <div class="scorecard-legend">
+            <span class="legend-item p1-legend active">P1</span>
+            <span id="p2Legend" class="legend-item p2-legend hidden">P2</span>
+          </div>
+        </div>
+
+        <div class="scorecards-wrapper">
+          <!-- Upper Section -->
+          <div class="score-group">
+            <div class="group-header-row">
+              <h3 class="group-header">Upper Section</h3>
+              <div class="bonus-progress-inline">
+                <span>Bonus Progress (63 pts):</span>
+                <span id="bonusProgressText">0/63</span>
+              </div>
+            </div>
+            
+            <div class="score-table">
+              <div class="score-row" data-key="ones" data-value="1">
+                <span class="row-label">Ones <small>(1s)</small></span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+              <div class="score-row" data-key="twos" data-value="2">
+                <span class="row-label">Twos <small>(2s)</small></span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+              <div class="score-row" data-key="threes" data-value="3">
+                <span class="row-label">Threes <small>(3s)</small></span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+              <div class="score-row" data-key="fours" data-value="4">
+                <span class="row-label">Fours <small>(4s)</small></span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+              <div class="score-row" data-key="fives" data-value="5">
+                <span class="row-label">Fives <small>(5s)</small></span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+              <div class="score-row" data-key="sixes" data-value="6">
+                <span class="row-label">Sixes <small>(6s)</small></span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="subtotals-box">
+              <div class="summary-line">
+                <span>Upper Subtotal</span>
+                <div class="multi-val">
+                  <span id="upperSubtotalP1">0</span>
+                  <span id="upperSubtotalP2" class="p2-col hidden">0</span>
+                </div>
+              </div>
+              <div class="summary-line">
+                <span>Bonus <small>(≥63: +35)</small></span>
+                <div class="multi-val">
+                  <span id="bonusP1" class="bonus-badge">0</span>
+                  <span id="bonusP2" class="bonus-badge p2-col hidden">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lower Section -->
+          <div class="score-group">
+            <h3 class="group-header">Lower Section</h3>
+            <div class="score-table">
+              <div class="score-row" data-key="threeKind" data-type="threeKind">
+                <span class="row-label">Three of a Kind 🔥</span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+              <div class="score-row" data-key="fourKind" data-type="fourKind">
+                <span class="row-label">Four of a Kind ⚡</span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+              <div class="score-row" data-key="fullHouse" data-type="fullHouse">
+                <span class="row-label">Full House <small>(25)</small> 🏠</span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+              <div class="score-row" data-key="smallStraight" data-type="smallStraight">
+                <span class="row-label">Small Straight <small>(30)</small> 🎲</span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+              <div class="score-row" data-key="largeStraight" data-type="largeStraight">
+                <span class="row-label">Large Straight <small>(40)</small> 🌟</span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+              <div class="score-row" data-key="yatzy" data-type="yatzy">
+                <span class="row-label">Yatzy <small>(50)</small> 💎</span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+              <div class="score-row" data-key="chance" data-type="chance">
+                <span class="row-label">Chance 🍀</span>
+                <div class="scores-cell">
+                  <span class="score-value p1-val" data-player="1">-</span>
+                  <span class="score-value p2-val p2-col hidden" data-player="2">-</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="subtotals-box">
+              <div class="summary-line">
+                <span>Lower Subtotal</span>
+                <div class="multi-val">
+                  <span id="lowerSubtotalP1">0</span>
+                  <span id="lowerSubtotalP2" class="p2-col hidden">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grand Total Banner -->
+        <div class="grand-total-card">
+          <span>GRAND TOTAL</span>
+          <div class="multi-val grand-vals">
+            <span id="grandTotalP1" class="grand-total-val">0</span>
+            <span id="grandTotalP2" class="grand-total-val p2-col hidden">0</span>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
-  <h2>Score Sheet</h2>
+  <!-- Detailed Statistics Modal -->
+  <div id="statsModal" class="modal-overlay hidden">
+    <div class="modal-card modal-large">
+      <div class="modal-header">
+        <h2>📊 Player Dashboard & Statistics</h2>
+        <button id="closeStatsBtn" class="icon-btn close-modal-btn">✖</button>
+      </div>
+      <div class="modal-body stats-grid-body">
+        <div class="stats-overview-cards">
+          <div class="stat-card">
+            <span class="stat-title">Games Played</span>
+            <strong id="statGamesPlayed" class="stat-val">0</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-title">Win Rate</span>
+            <strong id="statWinRate" class="stat-val">0%</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-title">High Score</span>
+            <strong id="statHighScore" class="stat-val">0</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-title">Average Score</span>
+            <strong id="statAvgScore" class="stat-val">0</strong>
+          </div>
+        </div>
 
-<div id="scoreBoard">
-  <div class="score-row" data-value="1">Ones: <span class="score">-</span></div>
-  <div class="score-row" data-value="2">Twos: <span class="score">-</span></div>
-  <div class="score-row" data-value="3">Threes: <span class="score">-</span></div>
-  <div class="score-row" data-value="4">Fours: <span class="score">-</span></div>
-  <div class="score-row" data-value="5">Fives: <span class="score">-</span></div>
-  <div class="score-row" data-value="6">Sixes: <span class="score">-</span></div>
-</div>
+        <div class="stats-history-section">
+          <h3>📜 Recent Match History</h3>
+          <ul id="matchHistoryList" class="match-history-list">
+            <li class="empty-state">No matches recorded yet</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<div class="score-row" data-type="threeKind">Three of a Kind: <span class="score">-</span></div>
-<div class="score-row" data-type="fourKind">Four of a Kind: <span class="score">-</span></div>
-<div class="score-row" data-type="fullHouse">Full House: <span class="score">-</span></div>
+  <!-- Game Over Modal -->
+  <div id="gameOverModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalTitle">🎉 Game Completed!</h2>
+        <p id="winnerSubtitle" class="winner-subtitle">Player 1 Wins!</p>
+      </div>
+      <div class="modal-body">
+        <div id="newHighScoreBadge" class="new-record-badge hidden">🏆 New High Score!</div>
 
+        <div class="rewards-earned-box">
+          <div class="reward-pill">⚡ <span id="earnedXPText">+250 XP</span></div>
+          <div class="reward-pill">🪙 <span id="earnedCoinsText">+150 Coins</span></div>
+        </div>
 
-<div class="score-row" data-type="smallStraight">Small Straight: <span class="score">-</span></div>
-<div class="score-row" data-type="largeStraight">Large Straight: <span class="score">-</span></div>
-<div class="score-row" data-type="yatzy">Yatzy: <span class="score">-</span></div>
-<div class="score-row" data-type="chance">Chance: <span class="score">-</span></div>
+        <div class="final-scores-comparison">
+          <div class="p-score-box p1-box">
+            <span class="p-name" id="modalP1Name">Player 1</span>
+            <span id="finalScoreP1" class="score-big">0</span>
+          </div>
+          <div id="modalP2Box" class="p-score-box p2-box hidden">
+            <span class="p-name" id="modalP2Name">Player 2</span>
+            <span id="finalScoreP2" class="score-big">0</span>
+          </div>
+        </div>
 
-<h2>Totals</h2>
-
-<div id="totals">
-  <div>Upper Subtotal: <span id="upperSubtotal">0</span></div>
-  <div>Bonus (63+): <span id="bonus">0</span></div>
-  <div><strong>Grand Total: <span id="grandTotal">0</span></strong></div>
-</div>
-
-  <p>Rolls Left: <span id="rollsLeft">3</span></p>
-
-  <button id="rollBtn">Roll Dice</button>
-  <button id="resetBtn">New Turn</button>
+        <div class="breakdown-grid">
+          <div class="breakdown-item">
+            <span>Upper Score:</span>
+            <strong id="finalUpperComp">0 vs 0</strong>
+          </div>
+          <div class="breakdown-item">
+            <span>Bonus:</span>
+            <strong id="finalBonusComp">0 vs 0</strong>
+          </div>
+          <div class="breakdown-item">
+            <span>Lower Score:</span>
+            <strong id="finalLowerComp">0 vs 0</strong>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="modalPlayAgainBtn" class="btn btn-primary btn-large btn-glow">Play Again</button>
+      </div>
+    </div>
+  </div>
 
   <script src="game.js"></script>
 </body>
